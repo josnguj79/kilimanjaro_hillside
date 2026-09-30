@@ -167,7 +167,7 @@ async function handleModalSubmit(event) {
     }
 
     try {
-        const response = await fetch('https://kilimanjaro-hillside.onrender.com//api/inquire', {
+        const response = await fetch('https://kilimanjaro-hillside.onrender.com/api/inquire', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
