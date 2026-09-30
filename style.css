@@ -1,0 +1,80 @@
+/* Custom Background Hero Banner with Gradient Overlay */
+.hero-bg {
+    background-image: url('https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1920&q=80');
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(18, 29, 23, 0.65) 0%, rgba(18, 29, 23, 0.4) 50%, rgba(18, 29, 23, 0.85) 100%);
+}
+
+/* Header Scrolled Background State */
+.header-scrolled {
+    background-color: rgba(18, 29, 23, 0.95) !important;
+    backdrop-filter: blur(8px);
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Gallery Active Filter State */
+.active-filter {
+    background-color: #1b3b2b !important;
+    color: #ffffff !important;
+    border-color: #1b3b2b !important;
+}
+
+/* Modal Smooth Fade Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.25s ease-out forwards;
+}
+/* Toast Notification Animation Base */
+#toast-container > div {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+/* Responsive Map Frame Container */
+iframe {
+    filter: contrast(102%) saturate(105%);
+    transition: filter 0.3s ease;
+}
+
+iframe:hover {
+    filter: contrast(105%) saturate(110%);
+}
+/* Guaranteed Back-To-Top Button Styling Override */
+#back-to-top-btn {
+    background-color: #D4AF37 !important; /* Rich Gold */
+    color: #1A1A1A !important;             /* Dark Contrast Arrow */
+    border: 2px solid #FFFFFF !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.8) !important;
+}
+
+#back-to-top-btn i {
+    color: #1A1A1A !important;
+    font-weight: 900 !important;
+}
+
+#back-to-top-btn.visible {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+}
+
+#back-to-top-btn:hover {
+    background-color: #F3C623 !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 25px rgba(243, 198, 35, 1) !important;
+}
