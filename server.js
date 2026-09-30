@@ -14,13 +14,45 @@ const db = createClient({
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Helper: Trigger Meta WhatsApp Template Message
-async function notifyManagerWhatsApp(booking) {
-    const endpoint = `https://graph.facebook.com/v19.0/${process.env.META_PHONE_NUMBER_ID}/messages`;
+app.post('/api/inquire', async (req, res) => {
+    const { name, email, suite, check_in, message } = req.body;
 
-    const payload = {
+    if (!name || !email) {
+        return res.status(400).json({ success: false, error: 'Name and email are required.' });
+    }
+
+    try {
+        // 1. Insert reservation into Turso Edge DB
+        await db.execute({
+            sql: 'INSERT INTO inquiries (name, email, suite, check_in, message) VALUES (?, ?, ?, ?, ?)',
+            args: [name, email, suite, check_in, message]
+        });
+
+        // 2. Dispatch live WhatsApp alert to the resort manager
+        await notifyManagerWhatsApp({ name, email, suite, check_in, message });
+
+        res.status(200).json({ success: true, message: 'Inquiry saved & manager notified!' });
+    } catch (err) {
+        console.error('Database/WhatsApp Error:', err.message);
+        res.status(500).json({ success: false, error: 'Internal server error.' });
+    }
+});
+
+async function notifyManagerWhatsApp(booking) {
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const token = process.env.META_WHATSAPP_TOKEN;
+    const recipient = process.env.ADMIN_WHATSAPP_NUMBER;
+
+    if (!phoneId || !token || !recipient) {
+        console.log('Skipping WhatsApp notification: Meta credentials missing in environment.');
+        return;
+    }
+
+    const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+    
+    const body = {
         messaging_product: "whatsapp",
-        to: process.env.MANAGER_WHATSAPP_NUMBER,
+        to: recipient,
         type: "template",
         template: {
             name: "new_booking_alert",
@@ -30,8 +62,8 @@ async function notifyManagerWhatsApp(booking) {
                     type: "body",
                     parameters: [
                         { type: "text", text: booking.name },
+                        { type: "text", text: booking.suite },
                         { type: "text", text: booking.check_in || "N/A" },
-                        { type: "text", text: booking.suite || "General Inquiry" },
                         { type: "text", text: booking.email }
                     ]
                 }
@@ -39,46 +71,13 @@ async function notifyManagerWhatsApp(booking) {
         }
     };
 
-    return axios.post(endpoint, payload, {
+    await axios.post(url, body, {
         headers: {
-            'Authorization': `Bearer ${process.env.META_WHATSAPP_TOKEN}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         }
     });
 }
-
-// Endpoint: New Form Inquiries
-app.post('/api/inquire', async (req, res) => {
-    const { name, email, suite, check_in, message } = req.body;
-
-    if (!name || !email) {
-        return res.status(400).json({ success: false, error: 'Name and email are required.' });
-    }
-
-    try {
-        // 1. Insert into Turso SQLite DB
-        const result = await db.execute({
-            sql: "INSERT INTO inquiries (name, email, suite, check_in, message) VALUES (?, ?, ?, ?, ?)",
-            args: [name, email, suite || 'General Inquiry', check_in || null, message || '']
-        });
-
-        // 2. Dispatch WhatsApp Notification to Manager
-        try {
-            await notifyManagerWhatsApp({ name, email, suite, check_in });
-        } catch (waErr) {
-            console.error('WhatsApp API Alert Failed:', waErr.response?.data || waErr.message);
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Inquiry saved successfully & manager notified!',
-            inquiryId: result.lastInsertRowid ? Number(result.lastInsertRowid) : null
-        });
-    } catch (error) {
-        console.error('Database Operation Failed:', error.message);
-        res.status(500).json({ success: false, error: 'Database transaction error.' });
-    }
-});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Resort API running on port ${PORT}`));
