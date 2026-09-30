@@ -136,12 +136,64 @@ function handleQuickBook(event) {
     openBookingModal();
 }
 
-function handleModalSubmit(event) {
+async function handleModalSubmit(event) {
     event.preventDefault();
-    closeBookingModal();
-    showToast('Thank you! Your reservation request has been received. Our concierge will confirm your stay shortly.');
-    event.target.reset();
+
+    const form = event.target;
+    
+    // Target inputs precisely using DOM traversal relative to form structure
+    const suiteSelect = form.querySelector('#modal-suite-select');
+    const dateInputs = form.querySelectorAll('input[type="date"]'); // [0] = Check In, [1] = Check Out
+    const nameInput = form.querySelector('input[type="text"]');
+    const emailInput = form.querySelector('input[type="email"]');
+
+    // Build payload matching your Express /api/inquire endpoint expectations
+    const payload = {
+        name: nameInput?.value.trim(),
+        email: emailInput?.value.trim(),
+        suite: suiteSelect?.value || 'General Inquiry',
+        check_in: dateInputs[0]?.value || null, // Check In Date
+        message: dateInputs[1]?.value ? `Check Out Date: ${dateInputs[1].value}` : '' // Optional message
+    };
+
+    // UI Loading State
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn ? submitBtn.innerText : 'Confirm Reservation Request';
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'PROCESSING REQUEST...';
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    }
+
+    try {
+        const response = await fetch('https://kilimanjaro-hillside.onrender.com//api/inquire', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeBookingModal();
+            showToast('Thank you! Your reservation request has been received. Our concierge will confirm your stay shortly.');
+            form.reset();
+        } else {
+            showToast(`Submission Error: ${data.error || 'Failed to submit.'}`, 'error');
+        }
+    } catch (error) {
+        console.error('API Error:', error);
+        showToast('Unable to connect to server. Please ensure Node.js API is running on port 5000.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalBtnText;
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        }
+    }
 }
+
 
 function handleContactSubmit(event) {
     event.preventDefault();
