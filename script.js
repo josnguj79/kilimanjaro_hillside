@@ -167,6 +167,7 @@ async function handleModalSubmit(event) {
     }
 
     try {
+        // Live Render Backend API (Handles Turso storage + WhatsApp alert server-side)
         const response = await fetch('https://kilimanjaro-hillside.onrender.com/api/inquire', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -184,7 +185,7 @@ async function handleModalSubmit(event) {
         }
     } catch (error) {
         console.error('API Error:', error);
-        showToast('Unable to connect to server. Please ensure Node.js API is running on port 5000.', 'error');
+        showToast('Unable to connect to reservation service. Please check your internet connection and try again.', 'error');
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -193,8 +194,6 @@ async function handleModalSubmit(event) {
         }
     }
 }
-
-
 function handleContactSubmit(event) {
     event.preventDefault();
     showToast('Message sent! We have received your inquiry and will reply within 24 hours.');
