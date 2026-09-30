@@ -8,6 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint for Render monitoring
+app.get('/health', (req, res) => res.status(200).json({ status: 'OK' }));
+
 // Connect to Turso Edge Database
 const db = createClient({
     url: process.env.TURSO_DATABASE_URL,
@@ -25,26 +28,30 @@ app.post('/api/inquire', async (req, res) => {
         // 1. Insert reservation into Turso Edge DB
         await db.execute({
             sql: 'INSERT INTO inquiries (name, email, suite, check_in, message) VALUES (?, ?, ?, ?, ?)',
-            args: [name, email, suite, check_in, message]
+            args: [name, email, suite, check_in || null, message || '']
         });
 
-        // 2. Dispatch live WhatsApp alert to the resort manager
-        await notifyManagerWhatsApp({ name, email, suite, check_in, message });
+        // 2. Dispatch live WhatsApp alert (isolated to prevent DB rollback/error response)
+        try {
+            await notifyManagerWhatsApp({ name, email, suite, check_in, message });
+        } catch (whatsappErr) {
+            console.error('WhatsApp Notification Failed (DB record saved successfully):', whatsappErr.response?.data || whatsappErr.message);
+        }
 
-        res.status(200).json({ success: true, message: 'Inquiry saved & manager notified!' });
+        res.status(200).json({ success: true, message: 'Inquiry saved successfully!' });
     } catch (err) {
-        console.error('Database/WhatsApp Error:', err.message);
-        res.status(500).json({ success: false, error: 'Internal server error.' });
+        console.error('Database Insertion Error:', err.message);
+        res.status(500).json({ success: false, error: 'Failed to record reservation.' });
     }
 });
 
 async function notifyManagerWhatsApp(booking) {
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const phoneId = process.env.META_PHONE_NUMBER_ID;
     const token = process.env.META_WHATSAPP_TOKEN;
-    const recipient = process.env.ADMIN_WHATSAPP_NUMBER;
+    const recipient = process.env.MANAGER_WHATSAPP_NUMBER;
 
     if (!phoneId || !token || !recipient) {
-        console.log('Skipping WhatsApp notification: Meta credentials missing in environment.');
+        console.log('Skipping WhatsApp notification: Meta environment variables missing.');
         return;
     }
 
@@ -61,22 +68,24 @@ async function notifyManagerWhatsApp(booking) {
                 {
                     type: "body",
                     parameters: [
-                        { type: "text", text: booking.name },
-                        { type: "text", text: booking.suite },
-                        { type: "text", text: booking.check_in || "N/A" },
-                        { type: "text", text: booking.email }
+                        { type: "text", text: String(booking.name || 'Guest') },
+                        { type: "text", text: String(booking.suite || 'General Inquiry') },
+                        { type: "text", text: String(booking.check_in || 'N/A') },
+                        { type: "text", text: String(booking.email || 'N/A') }
                     ]
                 }
             ]
         }
     };
 
-    await axios.post(url, body, {
+    const response = await axios.post(url, body, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         }
     });
+
+    console.log('WhatsApp Alert Dispatched Successfully:', response.data);
 }
 
 const PORT = process.env.PORT || 5000;
