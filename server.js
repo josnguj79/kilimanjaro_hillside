@@ -31,11 +31,13 @@ app.post('/api/inquire', async (req, res) => {
             args: [name, email, suite, check_in || null, message || '']
         });
 
-        // 2. Dispatch live WhatsApp alert (isolated to prevent DB rollback/error response)
+        // 2. Dispatch live WhatsApp alert
         try {
             await notifyManagerWhatsApp({ name, email, suite, check_in, message });
         } catch (whatsappErr) {
-            console.error('WhatsApp Notification Failed (DB record saved successfully):', whatsappErr.response?.data || whatsappErr.message);
+            console.error('WhatsApp Notification Failed (DB record saved successfully):', 
+                whatsappErr.response?.data || whatsappErr.message
+            );
         }
 
         res.status(200).json({ success: true, message: 'Inquiry saved successfully!' });
@@ -45,13 +47,33 @@ app.post('/api/inquire', async (req, res) => {
     }
 });
 
-async function notifyManagerWhatsApp(booking) {
-    const phoneId = process.env.META_PHONE_NUMBER_ID;
-    const token = process.env.META_WHATSAPP_TOKEN;
-    const recipient = process.env.MANAGER_WHATSAPP_NUMBER;
+/**
+ * Sanitizes phone numbers to standard Meta E.164 format for Kenya (254XXXXXXXXX)
+ */
+function formatWhatsAppNumber(phone) {
+    if (!phone) return '254713637987'; // Default hardcoded fallback
+    
+    // Strip non-numeric characters
+    let cleaned = String(phone).replace(/\D/g, '');
 
-    if (!phoneId || !token || !recipient) {
-        console.log('Skipping WhatsApp notification: Meta environment variables missing.');
+    // Convert local Kenya format (07XXXXXXXX or 01XXXXXXXX) to 254XXXXXXXXX
+    if (cleaned.startsWith('0') && cleaned.length === 10) {
+        cleaned = '254' + cleaned.substring(1);
+    }
+
+    return cleaned;
+}
+
+async function notifyManagerWhatsApp(booking) {
+    const phoneId = process.env.META_PHONE_NUMBER_ID || '1378679841991917';
+    const token = process.env.META_WHATSAPP_TOKEN;
+    
+    // Use Render env var with automatic fallback to whitelisted manager number
+    const rawRecipient = process.env.MANAGER_WHATSAPP_NUMBER || '254713637987';
+    const recipient = formatWhatsAppNumber(rawRecipient);
+
+    if (!token) {
+        console.warn('Skipping WhatsApp notification: META_WHATSAPP_TOKEN is missing in environment.');
         return;
     }
 
@@ -65,15 +87,15 @@ async function notifyManagerWhatsApp(booking) {
         to: recipient,
         type: "template",
         template: {
-            name: "jaspers_market_order_confirmation_v1", // Pre-approved sample template
+            name: "jaspers_market_order_confirmation_v1",
             language: { code: "en_US" },
             components: [
                 {
                     type: "body",
                     parameters: [
-                        { type: "text", text: String(booking.name || 'Guest') },                           // {{1}} Guest Name
-                        { type: "text", text: `RES-2026 [${String(booking.email || 'N/A')}]` },          // {{2}} Order ID / Email
-                        { type: "text", text: String(suiteAndCheckIn) }                                  // {{3}} Joined Suite & Check-in Date
+                        { type: "text", text: String(booking.name || 'Guest') },
+                        { type: "text", text: `RES-2026 [${String(booking.email || 'N/A')}]` },
+                        { type: "text", text: String(suiteAndCheckIn) }
                     ]
                 }
             ]
@@ -87,7 +109,8 @@ async function notifyManagerWhatsApp(booking) {
         }
     });
 
-    console.log('WhatsApp Alert Dispatched Successfully:', response.data);
+    console.log(`WhatsApp Alert Dispatched Successfully to ${recipient}:`, response.data);
 }
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Resort API running on port ${PORT}`));
