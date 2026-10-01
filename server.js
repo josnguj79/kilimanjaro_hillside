@@ -26,62 +26,53 @@ app.post('/api/inquire', async (req, res) => {
 
     try {
         // 1. Insert reservation into Turso Edge DB
-        await db.execute({
+        const dbResult = await db.execute({
             sql: 'INSERT INTO inquiries (name, email, suite, check_in, message) VALUES (?, ?, ?, ?, ?)',
-            args: [name, email, suite, check_in || null, message || '']
+            args: [name, email, suite || 'General Inquiry', check_in || null, message || '']
         });
+
+        console.log(`[DB SUCCESS] Inquiry saved to Turso DB. Row ID: ${dbResult.lastInsertRowid}`);
 
         // 2. Dispatch live WhatsApp alert
         try {
             await notifyManagerWhatsApp({ name, email, suite, check_in, message });
         } catch (whatsappErr) {
-            console.error('WhatsApp Notification Failed (DB record saved successfully):', 
-                whatsappErr.response?.data || whatsappErr.message
-            );
+            console.error('[WHATSAPP ERROR]: Notification Failed!');
+            if (whatsappErr.response) {
+                console.error('Meta API Error Details:', JSON.stringify(whatsappErr.response.data, null, 2));
+            } else {
+                console.error('Network/Internal Error:', whatsappErr.message);
+            }
         }
 
         res.status(200).json({ success: true, message: 'Inquiry saved successfully!' });
     } catch (err) {
-        console.error('Database Insertion Error:', err.message);
+        console.error('[DB FATAL ERROR]: Database Insertion Error:', err.message);
         res.status(500).json({ success: false, error: 'Failed to record reservation.' });
     }
 });
-
-/**
- * Sanitizes phone numbers to standard Meta E.164 format for Kenya (254XXXXXXXXX)
- * Strips all non-digit characters (+, spaces, dashes) and converts local prefixes.
- */
-function formatWhatsAppNumber(phone) {
-    if (!phone) return '254713637987'; // Default fallback
-    
-    // 1. Remove everything that is NOT a number (removes '+', spaces, dashes)
-    let cleaned = String(phone).replace(/\D/g, '');
-
-    // 2. If it starts with local Kenya zero (07... or 01...), convert to 254...
-    if (cleaned.startsWith('0') && cleaned.length === 10) {
-        cleaned = '254' + cleaned.substring(1);
-    }
-
-    return cleaned; // Guarantees pure digits like "254713637987"
-}
 
 async function notifyManagerWhatsApp(booking) {
     const phoneId = process.env.META_PHONE_NUMBER_ID || '1378679841991917';
     const token = process.env.META_WHATSAPP_TOKEN;
     
-    // Use Render env var with automatic fallback to whitelisted manager number
-    const rawRecipient = process.env.MANAGER_WHATSAPP_NUMBER || '254713637987';
-    const recipient = formatWhatsAppNumber(rawRecipient);
+    // Direct usage of Render environment variable / exact fallback number without stripping or altering
+    const recipient = process.env.MANAGER_WHATSAPP_NUMBER || '254713637987';
 
     if (!token) {
-        console.warn('Skipping WhatsApp notification: META_WHATSAPP_TOKEN is missing in environment.');
+        console.warn('[WHATSAPP SKIP]: META_WHATSAPP_TOKEN is missing in environment.');
         return;
     }
 
     const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
     
-    // Concatenate suite and check-in date into a single text block
-    const suiteAndCheckIn = `${booking.suite || 'General Inquiry'} (Check-in: ${booking.check_in || 'N/A'})`;
+    // Map resort data into the template's 3 required variables:
+    // {{1}} -> Guest Name
+    // {{2}} -> Reservation Reference & Guest Email
+    // {{3}} -> Suite, Check-In Date, and Message details
+    const param1_Name = String(booking.name || 'Guest Manager');
+    const param2_OrderRef = `RES-2026 [${String(booking.email || 'N/A')}]`;
+    const param3_DeliveryInfo = `${booking.suite || 'General Suite'} | Check-In: ${booking.check_in || 'TBD'} | Note: ${booking.message || 'None'}`;
 
     const body = {
         messaging_product: "whatsapp",
@@ -94,14 +85,16 @@ async function notifyManagerWhatsApp(booking) {
                 {
                     type: "body",
                     parameters: [
-                        { type: "text", text: String(booking.name || 'Guest') },
-                        { type: "text", text: `RES-2026 [${String(booking.email || 'N/A')}]` },
-                        { type: "text", text: String(suiteAndCheckIn) }
+                        { type: "text", text: param1_Name },         // Maps to {{1}}
+                        { type: "text", text: param2_OrderRef },     // Maps to {{2}}
+                        { type: "text", text: param3_DeliveryInfo }  // Maps to {{3}}
                     ]
                 }
             ]
         }
     };
+
+    console.log(`[WHATSAPP ATTEMPT]: Sending alert to target ${recipient}...`);
 
     const response = await axios.post(url, body, {
         headers: {
@@ -110,7 +103,7 @@ async function notifyManagerWhatsApp(booking) {
         }
     });
 
-    console.log(`WhatsApp Alert Dispatched Successfully to ${recipient}:`, response.data);
+    console.log(`[WHATSAPP SUCCESS]: Alert dispatched to ${recipient}. Payload Message ID:`, response.data?.messages?.[0]?.id || 'N/A');
 }
 
 const PORT = process.env.PORT || 5000;
