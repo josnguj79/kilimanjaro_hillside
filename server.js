@@ -57,21 +57,23 @@ async function notifyManagerWhatsApp(booking) {
 
     const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
     
+    // Concatenate suite and check-in date into a single text block
+    const suiteAndCheckIn = `${booking.suite || 'General Inquiry'} (Check-in: ${booking.check_in || 'N/A'})`;
+
     const body = {
         messaging_product: "whatsapp",
         to: recipient,
         type: "template",
         template: {
-            name: "new_booking_alert",
+            name: "jaspers_market_order_confirmation_v1", // Pre-approved sample template
             language: { code: "en_US" },
             components: [
                 {
                     type: "body",
                     parameters: [
-                        { type: "text", text: String(booking.name || 'Guest') },
-                        { type: "text", text: String(booking.suite || 'General Inquiry') },
-                        { type: "text", text: String(booking.check_in || 'N/A') },
-                        { type: "text", text: String(booking.email || 'N/A') }
+                        { type: "text", text: String(booking.name || 'Guest') },                           // {{1}} Guest Name
+                        { type: "text", text: `RES-2026 [${String(booking.email || 'N/A')}]` },          // {{2}} Order ID / Email
+                        { type: "text", text: String(suiteAndCheckIn) }                                  // {{3}} Joined Suite & Check-in Date
                     ]
                 }
             ]
@@ -87,6 +89,5 @@ async function notifyManagerWhatsApp(booking) {
 
     console.log('WhatsApp Alert Dispatched Successfully:', response.data);
 }
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Resort API running on port ${PORT}`));
