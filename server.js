@@ -135,7 +135,7 @@ app.post('/api/newsletter', async (req, res) => {
 });
 
 /**
- * WHATSAPP NOTIFICATION HELPER
+ * WHATSAPP NOTIFICATION HELPER (CUSTOM MESSAGE)
  */
 async function notifyManagerWhatsApp(booking) {
     const phoneId = process.env.META_PHONE_NUMBER_ID || '1378679841991917';
@@ -150,27 +150,24 @@ async function notifyManagerWhatsApp(booking) {
 
     const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
     
-    const param1_Name = String(booking.name || 'Guest Manager');
-    const param2_OrderRef = `RES-2026 [${String(booking.email || 'N/A')}]`;
-    const param3_DeliveryInfo = `${booking.suite || 'General Suite'} | Check-In: ${booking.check_in || 'TBD'} | Note: ${booking.message || 'None'}`;
+    // Custom message layout including Accommodation Tiers and Check-In / Check-Out details
+    const customMessage = 
+        `*🚨 NEW RESORT RESERVATION ALERT*\n\n` +
+        `*Full Name:* ${booking.name || 'N/A'}\n` +
+        `*Email Address:* ${booking.email || 'N/A'}\n` +
+        `*Accommodation Tier:* ${booking.suite || 'Kilimanjaro Peak Suite ($280/night)'}\n` +
+        `*Check-In:* ${booking.check_in || 'N/A'}\n` +
+        `*Check-Out:* ${booking.check_out || 'N/A'}\n` +
+        `*Message / Notes:* ${booking.message || 'No additional notes'}`;
 
     const body = {
         messaging_product: "whatsapp",
+        recipient_type: "individual",
         to: recipient,
-        type: "template",
-        template: {
-            name: "jaspers_market_order_confirmation_v1",
-            language: { code: "en_US" },
-            components: [
-                {
-                    type: "body",
-                    parameters: [
-                        { type: "text", text: param1_Name },         // Maps to {{1}}
-                        { type: "text", text: param2_OrderRef },     // Maps to {{2}}
-                        { type: "text", text: param3_DeliveryInfo }  // Maps to {{3}}
-                    ]
-                }
-            ]
+        type: "text",
+        text: {
+            preview_url: false,
+            body: customMessage
         }
     };
 
