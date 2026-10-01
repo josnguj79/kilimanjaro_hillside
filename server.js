@@ -105,52 +105,6 @@ async function notifyManagerWhatsApp(booking) {
 
     console.log(`[WHATSAPP SUCCESS]: Alert dispatched to ${recipient}. Payload Message ID:`, response.data?.messages?.[0]?.id || 'N/A');
 }
-async function handleContactSubmit(event) {
-    event.preventDefault();
 
-    const form = event.target;
-    const submitBtn = document.getElementById('contact-submit-btn');
-
-    // Extract form data
-    const payload = {
-        full_name: document.getElementById('contact-name').value.trim(),
-        email: document.getElementById('contact-email').value.trim(),
-        inquiry_type: document.getElementById('contact-inquiry-type').value,
-        message: document.getElementById('contact-message').value.trim()
-    };
-
-    // Prevent submit spam & show loading state
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Sending...';
-    }
-
-    try {
-        const response = await fetch('https://kilimanjaro-hillside.onrender.com/api/message', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            showToast('Message sent! We have received your inquiry and will reply within 24 hours.');
-            form.reset();
-        } else {
-            showToast(result.error || 'Failed to send message. Please try again.');
-        }
-    } catch (error) {
-        console.error('Contact Form Error:', error);
-        showToast('Network error. Please check your connection and try again.');
-    } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Send Message';
-        }
-    }
-}
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Resort API running on port ${PORT}`));
