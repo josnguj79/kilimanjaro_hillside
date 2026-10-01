@@ -242,10 +242,53 @@ async function handleContactSubmit(event) {
     }
 }
 
-function handleSubscribe(event) {
+async function handleSubscribe(event) {
     event.preventDefault();
-    showToast('Welcome to our newsletter! You will receive exclusive stay packages and safari updates.');
-    event.target.reset();
+
+    const form = event.target;
+    // Find input field inside the form (supports input named 'email' or type 'email')
+    const emailInput = form.querySelector('input[type="email"]') || form.querySelector('input[name="email"]');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    if (!emailInput || !emailInput.value.trim()) {
+        showToast('Please enter a valid email address.');
+        return;
+    }
+
+    const payload = {
+        email: emailInput.value.trim()
+    };
+
+    // Disable button during network request
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
+
+    try {
+        const response = await fetch('https://kilimanjaro-hillside.onrender.com/api/newsletter', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            showToast('Welcome to our newsletter! You will receive exclusive stay packages and safari updates.');
+            form.reset();
+        } else {
+            showToast(result.error || 'Failed to subscribe. Please try again.');
+        }
+    } catch (error) {
+        console.error('Newsletter Subscription Error:', error);
+        showToast('Network error. Please check your connection and try again.');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
+    }
 }
 // Testimonial Carousel Script
 let currentTestimonialIndex = 0;
