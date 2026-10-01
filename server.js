@@ -49,19 +49,20 @@ app.post('/api/inquire', async (req, res) => {
 
 /**
  * Sanitizes phone numbers to standard Meta E.164 format for Kenya (254XXXXXXXXX)
+ * Strips all non-digit characters (+, spaces, dashes) and converts local prefixes.
  */
 function formatWhatsAppNumber(phone) {
-    if (!phone) return '254713637987'; // Default hardcoded fallback
+    if (!phone) return '254713637987'; // Default fallback
     
-    // Strip non-numeric characters
+    // 1. Remove everything that is NOT a number (removes '+', spaces, dashes)
     let cleaned = String(phone).replace(/\D/g, '');
 
-    // Convert local Kenya format (07XXXXXXXX or 01XXXXXXXX) to 254XXXXXXXXX
+    // 2. If it starts with local Kenya zero (07... or 01...), convert to 254...
     if (cleaned.startsWith('0') && cleaned.length === 10) {
         cleaned = '254' + cleaned.substring(1);
     }
 
-    return cleaned;
+    return cleaned; // Guarantees pure digits like "254713637987"
 }
 
 async function notifyManagerWhatsApp(booking) {
