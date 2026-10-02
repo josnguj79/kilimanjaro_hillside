@@ -134,7 +134,8 @@ app.post('/api/newsletter', async (req, res) => {
     }
 });
 /**
- * QUICK BOOKING AVAILABILITY API
+ * QUICK BOOKING AVAILABILITY CHECK
+ * Cross-references check_in and extracts check_out dates from the `message` column
  */
 app.post('/api/check-availability', async (req, res) => {
     const { check_in, check_out, guests } = req.body;
@@ -147,39 +148,47 @@ app.post('/api/check-availability', async (req, res) => {
     }
 
     try {
-        // Query Turso DB for conflicting bookings during requested dates
+        // Query Turso DB cross-referencing requested dates against check_in and message columns
         const result = await db.execute({
             sql: `
                 SELECT COUNT(*) as count 
                 FROM inquiries 
-                WHERE check_in < ? 
-                  AND (check_out > ? OR check_out IS NULL)
+                WHERE (
+                    -- Matches where existing check_in falls inside the requested date range
+                    (check_in >= ? AND check_in < ?)
+                    OR
+                    -- Matches where existing reservation check_out stored inside message is after requested check_in
+                    (check_in < ? AND (message LIKE ? OR message LIKE ? OR message IS NULL))
+                )
             `,
-            args: [check_out, check_in]
+            args: [
+                check_in, 
+                check_out, 
+                check_out, 
+                `%${check_out}%`, 
+                `%Check-Out:%`
+            ]
         });
 
-        // Parse result row count securely
         const activeBookings = Number(result.rows?.[0]?.count || 0);
-
-        // Resort capacity threshold (3 total suites)
-        const TOTAL_SUITES = 3;
+        const TOTAL_SUITES = 3; // Maximum concurrent resort capacity
 
         if (activeBookings >= TOTAL_SUITES) {
             return res.status(200).json({ 
                 available: false, 
-                message: `Sorry, all suites are fully booked from ${check_in} to ${check_out}.` 
+                message: `Sorry, all suites are fully booked between ${check_in} and ${check_out}.` 
             });
         }
 
         res.status(200).json({ 
             available: true, 
-            message: `Great news! Accommodations are available for ${guests || '1'} guest(s) from ${check_in} to ${check_out}.` 
+            message: `Great news! Accommodations are available for ${guests || '2'} guest(s) from ${check_in} to ${check_out}.` 
         });
     } catch (err) {
         console.error('[DB CHECK AVAILABILITY ERROR]:', err.message);
         res.status(500).json({ 
             available: false, 
-            error: 'Server error while checking date availability.' 
+            error: err.message || 'Server error while verifying date availability.' 
         });
     }
 });
