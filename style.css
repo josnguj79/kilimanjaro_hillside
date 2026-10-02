@@ -19,7 +19,14 @@
     padding-bottom: 0.85rem !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
-
+#nav-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 /* Gallery Active Filter State */
 .active-filter {
     background-color: #1b3b2b !important;
