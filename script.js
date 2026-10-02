@@ -134,6 +134,11 @@ function closeBookingModal() {
 /**
  * HANDLER FOR QUICK BOOKING BAR
  */
+const RENDER_BACKEND_URL = 'https://kilimanjaro-hillside.onrender.com';
+
+/**
+ * QUICK BOOKING AVAILABILITY HANDLER
+ */
 async function handleQuickBook(event) {
     event.preventDefault();
 
@@ -141,26 +146,23 @@ async function handleQuickBook(event) {
     const checkOutInput = document.getElementById('qb-checkout');
     const guestsInput = document.getElementById('qb-guests');
     const submitBtn = document.getElementById('qb-submit-btn');
-    const alertBox = document.getElementById('qb-alert-box');
 
-    const checkIn = checkInInput.value;
-    const checkOut = checkOutInput.value;
-    const guests = guestsInput.value;
+    const checkIn = checkInInput?.value;
+    const checkOut = checkOutInput?.value;
+    const guests = guestsInput?.value || '2';
 
-    // Client-side date check
     if (new Date(checkOut) <= new Date(checkIn)) {
         displayQuickBookAlert('Check-out date must be after check-in date.', 'error');
         return;
     }
 
-    // Set UI loading state
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = `<span>Checking...</span><i class="fa-solid fa-spinner animate-spin text-xs"></i>`;
     }
 
     try {
-        const response = await fetch('/api/check-availability', {
+        const response = await fetch(`${RENDER_BACKEND_URL}/api/check-availability`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -181,7 +183,7 @@ async function handleQuickBook(event) {
         }
     } catch (error) {
         console.error('[QUICK BOOK ERROR]:', error);
-        displayQuickBookAlert('Unable to verify availability. Please try again.', 'error');
+        displayQuickBookAlert('Network error. Unable to connect to Render server.', 'error');
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
