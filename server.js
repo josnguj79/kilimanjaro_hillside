@@ -147,7 +147,7 @@ app.post('/api/check-availability', async (req, res) => {
     }
 
     try {
-        // Query Turso DB for conflicting bookings
+        // Query Turso DB for conflicting bookings during requested dates
         const result = await db.execute({
             sql: `
                 SELECT COUNT(*) as count 
@@ -158,9 +158,10 @@ app.post('/api/check-availability', async (req, res) => {
             args: [check_out, check_in]
         });
 
-        const activeBookings = result.rows[0].count;
+        // Parse result row count securely
+        const activeBookings = Number(result.rows?.[0]?.count || 0);
 
-        // Assuming resort capacity threshold (e.g. 3 total suites available)
+        // Resort capacity threshold (3 total suites)
         const TOTAL_SUITES = 3;
 
         if (activeBookings >= TOTAL_SUITES) {
@@ -172,7 +173,7 @@ app.post('/api/check-availability', async (req, res) => {
 
         res.status(200).json({ 
             available: true, 
-            message: `Great news! Accommodations are available for ${guests} guest(s) from ${check_in} to ${check_out}.` 
+            message: `Great news! Accommodations are available for ${guests || '1'} guest(s) from ${check_in} to ${check_out}.` 
         });
     } catch (err) {
         console.error('[DB CHECK AVAILABILITY ERROR]:', err.message);
