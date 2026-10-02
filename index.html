@@ -104,35 +104,35 @@
             </p>
 
             <!-- Quick Booking Bar -->
-            <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 rounded-2xl max-w-4xl mx-auto shadow-2xl text-left">
-                <form id="hero-quick-book" onsubmit="handleQuickBook(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-brand-gold font-semibold mb-1">Check In</label>
-                        <input type="date" required class="w-full bg-stone-900/60 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-gold">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-brand-gold font-semibold mb-1">Check Out</label>
-                        <input type="date" required class="w-full bg-stone-900/60 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-gold">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-brand-gold font-semibold mb-1">Guests</label>
-                        <select class="w-full bg-stone-900/60 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-gold">
-                            <option value="1">1 Adult</option>
-                            <option value="2" selected>2 Adults</option>
-                            <option value="3">3 Guests</option>
-                            <option value="4">4+ Family Group</option>
-                        </select>
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full bg-brand-gold hover:bg-brand-goldhover text-brand-dark font-semibold py-2.5 px-4 rounded-lg text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2">
-                            <span>Check Availability</span>
-                            <i class="fa-solid fa-arrow-right text-xs"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
+<div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 rounded-2xl max-w-4xl mx-auto shadow-2xl text-left">
+    <form id="hero-quick-book" onsubmit="handleQuickBook(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+            <label for="qb-checkin" class="block text-xs uppercase tracking-wider text-brand-gold font-semibold mb-1">Check In</label>
+            <input type="date" id="qb-checkin" name="check_in" required class="w-full bg-stone-900/60 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-gold">
         </div>
-
+        <div>
+            <label for="qb-checkout" class="block text-xs uppercase tracking-wider text-brand-gold font-semibold mb-1">Check Out</label>
+            <input type="date" id="qb-checkout" name="check_out" required class="w-full bg-stone-900/60 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-gold">
+        </div>
+        <div>
+            <label for="qb-guests" class="block text-xs uppercase tracking-wider text-brand-gold font-semibold mb-1">Guests</label>
+            <select id="qb-guests" name="guests" class="w-full bg-stone-900/60 border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-gold">
+                <option value="1">1 Adult</option>
+                <option value="2" selected>2 Adults</option>
+                <option value="3">3 Guests</option>
+                <option value="4">4+ Family Group</option>
+            </select>
+        </div>
+        <div class="flex items-end">
+            <button type="submit" id="qb-submit-btn" class="w-full bg-brand-gold hover:bg-brand-goldhover text-brand-dark font-semibold py-2.5 px-4 rounded-lg text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2">
+                <span>Check Availability</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+            </button>
+        </div>
+    </form>
+    <!-- Feedback Alert Box -->
+    <div id="qb-alert-box" class="hidden mt-4 p-3 rounded-lg text-sm transition-all duration-300"></div>
+</div>
         <a href="#about" class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white/70 hover:text-white transition-colors text-2xl animate-bounce">
             <i class="fa-solid fa-chevron-down"></i>
         </a>
