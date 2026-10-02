@@ -133,7 +133,55 @@ app.post('/api/newsletter', async (req, res) => {
         res.status(500).json({ success: false, error: 'Failed to subscribe to newsletter.' });
     }
 });
+/**
+ * QUICK BOOKING AVAILABILITY API
+ */
+app.post('/api/check-availability', async (req, res) => {
+    const { check_in, check_out, guests } = req.body;
 
+    if (!check_in || !check_out) {
+        return res.status(400).json({ 
+            available: false, 
+            error: 'Check-in and Check-out dates are required.' 
+        });
+    }
+
+    try {
+        // Query Turso DB for conflicting bookings
+        const result = await db.execute({
+            sql: `
+                SELECT COUNT(*) as count 
+                FROM inquiries 
+                WHERE check_in < ? 
+                  AND (check_out > ? OR check_out IS NULL)
+            `,
+            args: [check_out, check_in]
+        });
+
+        const activeBookings = result.rows[0].count;
+
+        // Assuming resort capacity threshold (e.g. 3 total suites available)
+        const TOTAL_SUITES = 3;
+
+        if (activeBookings >= TOTAL_SUITES) {
+            return res.status(200).json({ 
+                available: false, 
+                message: `Sorry, all suites are fully booked from ${check_in} to ${check_out}.` 
+            });
+        }
+
+        res.status(200).json({ 
+            available: true, 
+            message: `Great news! Accommodations are available for ${guests} guest(s) from ${check_in} to ${check_out}.` 
+        });
+    } catch (err) {
+        console.error('[DB CHECK AVAILABILITY ERROR]:', err.message);
+        res.status(500).json({ 
+            available: false, 
+            error: 'Server error while checking date availability.' 
+        });
+    }
+});
 /**
  * WHATSAPP NOTIFICATION HELPER (CUSTOM MESSAGE)
  */
