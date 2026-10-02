@@ -68,7 +68,67 @@ mobileLinks.forEach(link => {
         mobileMenu.classList.add('hidden');
     });
 });
+/**
+ * NAV LINK ANIMATED ACTIVE INDICATOR HELPER
+ */
+function initNavAnimation() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const indicator = document.getElementById('nav-indicator');
 
+    if (!indicator || navLinks.length === 0) return;
+
+    // Helper to position indicator over target link
+    function moveIndicatorTo(link) {
+        const navContainer = link.parentElement;
+        const navRect = navContainer.getBoundingClientRect();
+        const linkRect = link.getBoundingClientRect();
+
+        // Calculate offset position relative to parent container
+        const left = linkRect.left - navRect.left;
+        const top = linkRect.top - navRect.top;
+
+        // Apply animated styles
+        indicator.style.width = `${linkRect.width}px`;
+        indicator.style.height = `${linkRect.height}px`;
+        indicator.style.transform = `translate(${left}px, ${top}px)`;
+        indicator.style.opacity = '1';
+    }
+
+    // Update active link state and trigger slide animation
+    function setActiveLink(clickedLink) {
+        navLinks.forEach(link => {
+            link.classList.remove('active-link', 'text-brand-dark');
+            link.classList.add('text-stone-300');
+        });
+
+        clickedLink.classList.add('active-link', 'text-brand-dark');
+        clickedLink.classList.remove('text-stone-300');
+
+        moveIndicatorTo(clickedLink);
+    }
+
+    // Add click event listeners to all nav links
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            setActiveLink(e.currentTarget);
+        });
+    });
+
+    // Initialize indicator position on page load
+    const activeLink = document.querySelector('.nav-link.active-link') || navLinks[0];
+    if (activeLink) {
+        setTimeout(() => moveIndicatorTo(activeLink), 100);
+    }
+
+    // Recalculate position on window resize
+    window.addEventListener('resize', () => {
+        const currentActive = document.querySelector('.nav-link.active-link');
+        if (currentActive) moveIndicatorTo(currentActive);
+    });
+}
+
+// Initialize when DOM content is ready
+document.addEventListener('DOMContentLoaded', initNavAnimation);
 // Gallery Filter Functionality
 function filterGallery(category) {
     const items = document.querySelectorAll('.gallery-item');
