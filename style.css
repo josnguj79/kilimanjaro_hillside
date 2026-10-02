@@ -1,6 +1,6 @@
 /* Custom Background Hero Banner with Gradient Overlay */
 .hero-bg {
-    background-image: url('https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1920&q=80');
+    background-image: url('images/backround.jpeg');
     background-size: cover;
     background-position: center;
 }
