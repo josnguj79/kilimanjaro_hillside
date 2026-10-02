@@ -131,9 +131,81 @@ function closeBookingModal() {
 }
 
 // Form Handlers (Replaced browser alerts with CSS toasts)
-function handleQuickBook(event) {
+/**
+ * HANDLER FOR QUICK BOOKING BAR
+ */
+async function handleQuickBook(event) {
     event.preventDefault();
-    openBookingModal();
+
+    const checkInInput = document.getElementById('qb-checkin');
+    const checkOutInput = document.getElementById('qb-checkout');
+    const guestsInput = document.getElementById('qb-guests');
+    const submitBtn = document.getElementById('qb-submit-btn');
+    const alertBox = document.getElementById('qb-alert-box');
+
+    const checkIn = checkInInput.value;
+    const checkOut = checkOutInput.value;
+    const guests = guestsInput.value;
+
+    // Client-side date check
+    if (new Date(checkOut) <= new Date(checkIn)) {
+        displayQuickBookAlert('Check-out date must be after check-in date.', 'error');
+        return;
+    }
+
+    // Set UI loading state
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span>Checking...</span><i class="fa-solid fa-spinner animate-spin text-xs"></i>`;
+    }
+
+    try {
+        const response = await fetch('/api/check-availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                check_in: checkIn,
+                check_out: checkOut,
+                guests: guests
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.available) {
+            displayQuickBookAlert(result.message, 'success');
+        } else {
+            displayQuickBookAlert(result.message || result.error || 'Selected dates are unavailable.', 'error');
+        }
+    } catch (error) {
+        console.error('[QUICK BOOK ERROR]:', error);
+        displayQuickBookAlert('Unable to verify availability. Please try again.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>Check Availability</span><i class="fa-solid fa-arrow-right text-xs"></i>`;
+        }
+    }
+}
+
+/**
+ * Helper to display quick book alert UI
+ */
+function displayQuickBookAlert(message, type) {
+    const alertBox = document.getElementById('qb-alert-box');
+    if (!alertBox) return;
+
+    alertBox.classList.remove('hidden', 'bg-emerald-900/80', 'text-emerald-200', 'border-emerald-500', 'bg-rose-900/80', 'text-rose-200', 'border-rose-500');
+
+    if (type === 'success') {
+        alertBox.classList.add('bg-emerald-900/80', 'text-emerald-200', 'border', 'border-emerald-500');
+    } else {
+        alertBox.classList.add('bg-rose-900/80', 'text-rose-200', 'border', 'border-rose-500');
+    }
+
+    alertBox.textContent = message;
 }
 
 async function handleModalSubmit(event) {
