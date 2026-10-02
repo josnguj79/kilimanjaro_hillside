@@ -28,17 +28,34 @@ app.post('/api/inquire', async (req, res) => {
     }
 
     try {
+        const selectedSuite = suite || 'General Inquiry';
+
+        // Duplicate Check: Prevent double booking for specific suites on the same check-in date
+        if (check_in && selectedSuite !== 'General Inquiry') {
+            const existingBooking = await db.execute({
+                sql: 'SELECT id FROM inquiries WHERE suite = ? AND check_in = ?',
+                args: [selectedSuite, check_in]
+            });
+
+            if (existingBooking.rows.length > 0) {
+                return res.status(409).json({ 
+                    success: false, 
+                    error: `The ${selectedSuite} is already booked for ${check_in}. Please choose another date or suite.` 
+                });
+            }
+        }
+
         // Insert reservation into Turso Edge DB
         const dbResult = await db.execute({
             sql: 'INSERT INTO inquiries (name, email, suite, check_in, message) VALUES (?, ?, ?, ?, ?)',
-            args: [name, email, suite || 'General Inquiry', check_in || null, message || '']
+            args: [name, email, selectedSuite, check_in || null, message || '']
         });
 
         console.log(`[DB SUCCESS] Inquiry saved to Turso DB. Row ID: ${dbResult.lastInsertRowid}`);
 
         // Dispatch live WhatsApp alert
         try {
-            await notifyManagerWhatsApp({ name, email, suite, check_in, message });
+            await notifyManagerWhatsApp({ name, email, suite: selectedSuite, check_in, message });
         } catch (whatsappErr) {
             console.error('[WHATSAPP ERROR]: Notification Failed!');
             if (whatsappErr.response) {
@@ -54,7 +71,6 @@ app.post('/api/inquire', async (req, res) => {
         res.status(500).json({ success: false, error: 'Failed to record reservation.' });
     }
 });
-
 /**
  * 2. SEND A MESSAGE / CONTACT FORM ENDPOINT
  */
